@@ -1,0 +1,7 @@
+{
+    "https://nowsecure.nl": {
+        "cloudflare": true,
+        "cf-ray": true,
+        "cf-cache": false
+    }
+}

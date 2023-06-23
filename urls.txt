@@ -1,0 +1,5 @@
+https://nowsecure.nl
+https://www.tutorialspoint.com/python/index.htm
+https://www.w3schools.com/python/
+https://www.kaggle.com/learn/python
+https://www.codecademy.com/learn/learn-python
