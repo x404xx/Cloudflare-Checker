@@ -32,7 +32,7 @@ class CloudflareChecker:
 
     @staticmethod
     def stop_info():
-        print(f'Type "{Colors.LPURPLE}!s{Colors.END}" to stop the program!\n')
+        print(f'Press "{Colors.LPURPLE}ENTER{Colors.END}" to stop the program!\n')
 
     @staticmethod
     def save_info(config_file: str):
@@ -61,55 +61,42 @@ class CloudflareChecker:
     @staticmethod
     def time_taken(started_time):
         elapsed = round((time() - started_time), 2)
-
-        if elapsed < 1:
-            format_elapsed = f'{Colors.BGREEN}{round(elapsed * 1000)}{Colors.END} miliseconds!'
-        elif elapsed < 60:
-            format_elapsed = f'{Colors.BGREEN}{elapsed}{Colors.END} seconds!'
-        else:
-            minutes = int(elapsed // 60)
-            seconds = int(elapsed % 60)
-            format_elapsed = f'{Colors.BGREEN}{minutes}{Colors.END} minutes {Colors.BGREEN}{seconds}{Colors.END} seconds!'
-
-        return format_elapsed
+        return (
+            f'{Colors.BGREEN}{round(elapsed * 1000)}{Colors.END} miliseconds!'
+            if elapsed < 1
+            else f'{Colors.BGREEN}{elapsed}{Colors.END} seconds!'
+            if elapsed < 60
+            else f'{Colors.BGREEN}{int(elapsed // 60)}{Colors.END} minutes {Colors.BGREEN}{int(elapsed % 60)}{Colors.END} seconds!'
+        )
 
     @staticmethod
     async def check_cloudflare(response: httpx.Response):
-        result = {
-            'cloudflare': False,
-            'cf-ray': False,
-            'cf-cache': False
-        }
         headers = [header.lower() for header in response.headers]
-
-        if response.headers.get('server') == 'cloudflare':
-            result['cloudflare'] = True
-        if 'cf-ray' in headers:
-            result['cf-ray'] = True
-        if 'cf-cache-status' in headers:
-            result['cf-cache'] = True
-
-        return result
+        return {
+            'code': response.status_code,
+            'cloudflare': 'server' in headers and response.headers['server'] == 'cloudflare',
+            'challenge': 'cf-mitigated' in headers,
+            'chl-bypass': 'cf-chl-bypass' in headers,
+            'cf-ray': 'cf-ray' in headers,
+            'cf-cache': 'cf-cache-status' in headers,
+        }
 
     @classmethod
-    async def process_url(cls, client: httpx.AsyncClient, url: str):
-        cls.now_checking(url)
+    async def process_url(cls, client: httpx.AsyncClient, url: str, mass=False):
+        if mass:
+            cls.now_checking(url)
         try:
-            response = await client.get(url)
+            response = await client.head(url)
             return await cls.check_cloudflare(response)
         except httpx.HTTPError as error:
-            cls.error_info(url, error)
             return {'error': str(error)}
 
     @classmethod
     async def mass_check(cls, client: httpx.AsyncClient, file_path: str):
-        results = {}
         urls = cls.load_urls(file_path)
-        tasks = [cls.process_url(client, url) for url in urls]
+        tasks = [cls.process_url(client, url, True) for url in urls]
         completed_tasks = await asyncio.gather(*tasks)
-
-        for url, result in zip(urls, completed_tasks):
-            results[url] = result
+        results = {url: result for url, result in zip(urls, completed_tasks)}
         cls.save_results(results)
 
     @classmethod
@@ -118,19 +105,18 @@ class CloudflareChecker:
         cls.stop_info()
         while True:
             url = cls.get_query()
-            if url == '!s':
+            if not url:
                 print('\nBye..\n')
                 break
-
             print()
-            try:
-                response = await client.get(url)
-                results = await cls.check_cloudflare(response)
-                print(json.dumps({url: results}, indent=4))
-                print()
-            except httpx.HTTPError as error:
+            results = await cls.process_url(client, url)
+            if 'error' in results:
+                error = results.get('error')
                 cls.error_info(url, error)
                 continue
+            else:
+                print(json.dumps({url: results}, indent=4))
+                print()
 
     @classmethod
     async def start_program(cls):
@@ -138,11 +124,10 @@ class CloudflareChecker:
             if len(argv) == 2:
                 started_mass = time()
                 await cls.mass_check(client, argv[-1])
-                print(f'Time taken: {cls.time_taken(started_mass)}')
-                print()
+                print(f'Time taken: {cls.time_taken(started_mass)}\n')
             else:
                 await cls.single_check(client)
 
 
 if __name__ == '__main__':
-    asyncio.run(CloudflareChecker().start_program())
+    asyncio.run(CloudflareChecker.start_program())

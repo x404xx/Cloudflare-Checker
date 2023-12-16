@@ -1,7 +1,42 @@
 {
     "https://nowsecure.nl": {
+        "code": 403,
         "cloudflare": true,
+        "challenge": true,
+        "chl-bypass": false,
         "cf-ray": true,
         "cf-cache": false
+    },
+    "https://www.tutorialspoint.com/python/index.htm": {
+        "code": 200,
+        "cloudflare": false,
+        "challenge": false,
+        "chl-bypass": false,
+        "cf-ray": false,
+        "cf-cache": false
+    },
+    "https://www.w3schools.com/python/": {
+        "code": 200,
+        "cloudflare": false,
+        "challenge": false,
+        "chl-bypass": false,
+        "cf-ray": false,
+        "cf-cache": false
+    },
+    "https://www.kaggle.com/learn/python": {
+        "code": 200,
+        "cloudflare": false,
+        "challenge": false,
+        "chl-bypass": false,
+        "cf-ray": false,
+        "cf-cache": false
+    },
+    "https://www.codecademy.com/learn/learn-python": {
+        "code": 200,
+        "cloudflare": true,
+        "challenge": false,
+        "chl-bypass": false,
+        "cf-ray": true,
+        "cf-cache": true
     }
 }
